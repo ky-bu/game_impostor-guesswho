@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Impostor Word Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .pulse-glow {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+    }
+
+    .glow-purple {
+      box-shadow: 0 0 25px rgba(147, 51, 234, 0.4);
+    }
+
+    /* Custom animated hold button */
+    .hold-btn-active {
+      transform: scale(0.97);
+      filter: brightness(1.2);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-3 sm:p-6 bg-slate-950 text-slate-100">
+
+  <!-- Main Mobile Container -->
+  <div class="w-full max-w-[430px] h-[100dvh] max-h-[920px] flex flex-col justify-between glass-card rounded-3xl p-5 shadow-2xl relative overflow-hidden border border-slate-800">
+
+    <!-- App Header -->
+    <header class="text-center pt-2 pb-3 border-b border-slate-800/80 shrink-0">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 text-xs font-semibold text-purple-400 tracking-wider uppercase mb-1">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18a1 1 0 0 1-2 0v-1.07A7 7 0 0 1 5.07 11H6a1 1 0 0 1 0 2 5 5 0 0 0 5 5v-1a1 1 0 0 1 2 0z"/></svg>
+        Game to spice up break time
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18a1 1 0 0 1-2 0v-1.07A7 7 0 0 1 5.07 11H6a1 1 0 0 1 0 2 5 5 0 0 0 5 5v-1a1 1 0 0 1 2 0z"/></svg>
+      </div>
+      <h1 class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 bg-clip-text text-transparent">
+        Who's the Impostor?
+      </h1>
+    </header>
+
+    <!-- SCREEN 1: REGISTRATION -->
+    <div id="screen-register" class="flex-1 flex flex-col justify-between py-4 overflow-y-auto space-y-4">
+      <div class="space-y-4">
+        <div class="text-center">
+          <h2 class="text-lg font-bold text-slate-200">Gather the Crew</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Enter each player's name (min 4 players)</p>
+        </div>
+
+        <!-- Add Player Form -->
+        <form id="add-player-form" class="flex gap-2">
+          <input 
+            type="text" 
+            id="player-name-input" 
+            placeholder="Enter nickname..." 
+            autocomplete="off"
+            class="flex-1 bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 text-base rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+            required
+          >
+          <button 
+            type="submit" 
+            class="bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-bold px-5 py-3 rounded-xl shadow-lg transition flex items-center justify-center text-sm shrink-0"
+          >
+            Add
+          </button>
+        </form>
+
+        <!-- Player Count Badge -->
+        <div class="flex items-center justify-between px-2 pt-1 text-xs font-semibold text-slate-400">
+          <span>Registered (<span id="player-count">0</span>):</span>
+          <span id="impostor-count-info" class="text-rose-400">1 Impostor for every 4 players</span>
+        </div>
+
+        <!-- Registered Players List -->
+        <div id="player-list" class="max-h-[180px] overflow-y-auto space-y-2 pr-1">
+          <div id="empty-state" class="text-center py-6 text-slate-500 text-sm italic">
+            No players added yet.
+          </div>
+        </div>
+
+        <!-- Start / Ready Button -->
+        <div id="no-more-container" class="pt-1">
+          <button 
+            id="btn-no-more" 
+            class="hidden w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-extrabold py-3.5 rounded-2xl shadow-lg shadow-emerald-950/50 text-base tracking-wide transition-all uppercase"
+          >
+            Crew ready -- Let's Play!
+          </button>
+        </div>
+
+        <!-- How to Play Mechanics Guide (Displayed Openly Below Player List) -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 text-xs text-slate-300 space-y-2">
+          <div class="font-bold text-purple-400 flex items-center gap-1.5 pb-2 border-b border-slate-800/80">
+            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            How to Play (Game Mechanics)
+          </div>
+          <div class="space-y-2 text-slate-300 leading-relaxed">
+            <p><strong class="text-purple-300">1. Pass & Peek:</strong> Hand the phone to each registered player. Non-impostors see the Secret Word (e.g. <em>Knife</em>). The secret <span class="text-rose-400 font-semibold">Impostor</span> only gets a category clue (e.g. <em>Kitchen Item</em>).</p>
+            <p><strong class="text-purple-300">2. Give Clues:</strong> Players take turns saying a single word or short clue describing the Secret Word. The Impostor must fake it and blend in!</p>
+            <p><strong class="text-purple-300">3. Catch the Impostor:</strong> Spot whoever gives suspicious or off-target clues, discuss with the crew, and tap <strong>Unmask</strong> to reveal the results!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: PASS PHONE & REVEAL WORD -->
+    <div id="screen-pass" class="hidden flex-1 flex flex-col justify-between py-4 text-center">
+      <div class="space-y-2">
+        <div class="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-xs font-semibold">
+          Step <span id="pass-step">1</span> of <span id="pass-total">4</span>
+        </div>
+        <h2 id="pass-player-title" class="text-xl font-bold text-slate-200">
+          Hand phone to: <span id="current-pass-player" class="text-purple-400 font-extrabold block text-2xl mt-1">Player</span>
+        </h2>
+        <p class="text-xs text-slate-400">Press and hold the button below to see your secret word.</p>
+      </div>
+
+      <!-- Secret Display Box -->
+      <div id="card-secret" class="my-4 p-6 rounded-2xl bg-slate-900/90 border-2 border-dashed border-slate-700 min-h-[160px] flex flex-col items-center justify-center transition-all duration-200">
+        <div id="secret-word-display" class="hidden text-center space-y-2">
+          <span id="role-tag" class="inline-block text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"></span>
+          <div id="secret-word-text" class="text-3xl font-black text-white tracking-wide"></div>
+          <div id="secret-clue-text" class="text-sm font-semibold text-amber-300"></div>
+        </div>
+        <div id="secret-placeholder" class="text-slate-500 text-sm text-center flex flex-col items-center gap-2">
+          <svg class="w-8 h-8 opacity-40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          Hold button below to reveal
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="space-y-3 shrink-0">
+        <!-- Hold Button -->
+        <button 
+          id="btn-hold-word"
+          class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-5 rounded-2xl shadow-xl shadow-purple-950/50 text-lg transition tracking-wide active:scale-98 select-none"
+        >
+          Hold to See Word
+        </button>
+
+        <!-- Next Player Button -->
+        <button 
+          id="btn-next-pass"
+          class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3.5 rounded-xl border border-slate-700 transition flex items-center justify-center gap-2 text-sm"
+        >
+          <span>Next player</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: GAMEPLAY / TIMER ROUND -->
+    <div id="screen-gameplay" class="hidden flex-1 flex flex-col justify-between py-3 text-center">
+      <!-- Centered 2-Line Header -->
+      <div class="flex flex-col items-center justify-center text-center px-1 mb-1 gap-0.5">
+        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Secret Word Showdown</span>
+        <span id="clue-round-badge" class="text-xs font-bold text-emerald-400 uppercase tracking-wider">(Round 1)</span>
+      </div>
+
+      <div class="space-y-1">
+        <h2 class="text-xl font-bold text-slate-200">
+          Spotlight on: <span id="turn-player-name" class="text-purple-400 font-extrabold block text-2xl mt-0.5">Player</span>
+        </h2>
+        <p class="text-xs text-slate-400">Say one word or short clue related to the secret word.</p>
+
+        <!-- Centered Unmask Impostor Button -->
+        <button 
+          id="btn-reveal"
+          class="mx-auto px-4 py-2 bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-extrabold text-xs rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-md mt-2"
+        >
+          <svg class="w-3.5 h-3.5 fill-current text-rose-400" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          <span>Unmask the Impostor(s)</span>
+        </button>
+      </div>
+
+      <!-- Timer Circle Container -->
+      <div class="my-auto flex flex-col items-center justify-center">
+        <div class="relative w-44 h-44 flex items-center justify-center">
+          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="8" class="text-slate-800" fill="transparent" />
+            <circle id="timer-progress" cx="50" cy="50" r="42" stroke="currentColor" stroke-width="8" stroke-dasharray="263.89" stroke-dashoffset="0" stroke-linecap="round" class="text-purple-500 transition-all duration-1000 ease-linear" fill="transparent" />
+          </svg>
+          <div class="absolute flex flex-col items-center">
+            <span id="timer-seconds" class="text-5xl font-black text-white">60</span>
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-1">Seconds</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gameplay Action Buttons -->
+      <div class="pt-2 shrink-0">
+        <button 
+          id="btn-skip-timer"
+          class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-950/50 transition flex items-center justify-center gap-2 text-base tracking-wide"
+        >
+          <span>Pass the spotlight!</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: GAME OVER / REVEAL -->
+    <div id="screen-reveal" class="hidden flex-1 flex flex-col justify-between py-4 text-center overflow-y-auto">
+      <div class="space-y-3">
+        <span class="text-xs font-bold text-rose-400 uppercase tracking-widest">Game Over</span>
+        <h2 class="text-2xl font-black text-white">Results Revealed!</h2>
+
+        <!-- Secret Word Card -->
+        <div class="p-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 space-y-1">
+          <span class="text-xs text-purple-300 font-semibold uppercase">The Secret Word Was:</span>
+          <div id="final-secret-word" class="text-3xl font-black text-purple-200">Word</div>
+          <div id="final-category" class="text-xs text-amber-300 font-semibold">Category: Kitchen</div>
+        </div>
+
+        <!-- Impostors Card -->
+        <div class="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 space-y-2">
+          <span class="text-xs text-rose-300 font-bold uppercase tracking-wider">The Impostor(s):</span>
+          <div id="final-impostors-list" class="flex flex-wrap justify-center gap-2 pt-1">
+            <!-- Dynamic tags -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2.5 pt-4 shrink-0">
+        <button 
+          id="btn-play-again"
+          class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-extrabold py-4 rounded-2xl shadow-lg shadow-emerald-950/50 text-base tracking-wide transition uppercase"
+        >
+          Rematch with the Crew
+        </button>
+
+        <button 
+          id="btn-end-game"
+          class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 rounded-xl border border-slate-700 transition text-sm"
+        >
+          Bye for now.
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center pt-2 border-t border-slate-800/80 shrink-0">
+      <p class="text-[10px] text-slate-500">Keep your secret word hidden from others!</p>
+    </footer>
+  </div>
+
+  <script>
+    // 100 Everyday Categories with Everyday Nouns
+    const WORD_BANK_100 = [
+      { category: "Kitchen Utensil", words: ["Knife", "Spoon", "Fork", "Ladle", "Spatula", "Whisk", "Peeler", "Can Opener", "Tongs", "Grater"] },
+      { category: "Kitchen Cookware", words: ["Frying Pan", "Saucepan", "Stock Pot", "Wok", "Baking Sheet", "Casserole Dish", "Pressure Cooker", "Dutch Oven"] },
+      { category: "Home Appliance", words: ["Refrigerator", "Microwave", "Toaster", "Blender", "Coffee Maker", "Dishwasher", "Washing Machine", "Vacuum Cleaner"] },
+      { category: "Living Room Furniture", words: ["Sofa", "Coffee Table", "Armchair", "TV Stand", "Bookshelf", "Recliner", "Ottoman", "Console Table"] },
+      { category: "Living Room Electronics", words: ["Television", "Soundbar", "Game Console", "Remote Control", "Projector", "Router", "Speakers"] },
+      { category: "Bedroom Furniture", words: ["Bed Frame", "Mattress", "Nightstand", "Wardrobe", "Dresser", "Vanity", "Full Mirror"] },
+      { category: "Bedding Item", words: ["Pillow", "Blanket", "Duvet", "Bedsheet", "Pillowcase", "Comforter", "Throw Blanket"] },
+      { category: "Bathroom Toiletries", words: ["Toothbrush", "Toothpaste", "Shampoo", "Conditioner", "Soap Bar", "Body Wash", "Deodorant", "Razor"] },
+      { category: "Bathroom Linen & Hardware", words: ["Towel", "Bath Mat", "Shower Curtain", "Plunger", "Tissue Paper", "Loofah", "Scale"] },
+      { category: "Footwear", words: ["Slipper", "Sneakers", "Sandals", "Boots", "High Heels", "Loafers", "Flip Flops", "Running Shoes"] },
+      { category: "Weather Gear", words: ["Umbrella", "Raincoat", "Earmuffs", "Snow Gloves", "Rain Boots", "Windbreaker"] },
+      { category: "Bags & Luggage", words: ["Backpack", "Handbag", "Suitcase", "Duffel Bag", "Tote Bag", "Briefcase", "Fanny Pack"] },
+      { category: "Stationery & Desk", words: ["Scissors", "Stapler", "Paper Clip", "Tape Dispenser", "Ruler", "Eraser", "Highlighter", "Sticky Notes"] },
+      { category: "Writing Instruments", words: ["Pencil", "Ballpoint Pen", "Fountain Pen", "Marker", "Crayon", "Chalk", "Colored Pencil"] },
+      { category: "Office & School Supplies", words: ["Notebook", "Folder", "Binder", "Calculator", "Whiteboard", "Desk Organizer", "Glue Stick"] },
+      { category: "Hardware Hand Tool", words: ["Hammer", "Screwdriver", "Pliers", "Wrench", "Tape Measure", "Hand Saw", "Chisel", "Utility Knife"] },
+      { category: "Hardware Power Tool", words: ["Power Drill", "Electric Saw", "Sander", "Angle Grinder", "Nail Gun", "Lawn Mower"] },
+      { category: "Musical String Instrument", words: ["Guitar", "Violin", "Cello", "Ukulele", "Banjo", "Harp", "Mandolin"] },
+      { category: "Musical Key & Percussion", words: ["Piano", "Drums", "Xylophone", "Accordion", "Keyboard", "Tambourine", "Triangle"] },
+      { category: "Vehicle / Transport", words: ["Bicycle", "Motorcycle", "Car", "Bus", "Train", "Airplane", "Scooter", "Helicopter"] },
+      { category: "Safety & Protective Gear", words: ["Helmet", "Seatbelt", "Life Jacket", "Earplugs", "Safety Goggles", "Dust Mask", "Gloves"] },
+      { category: "Fashion Accessories", words: ["Sunglasses", "Wristwatch", "Belt", "Scarf", "Hat", "Necklace", "Ring", "Earrings"] },
+      { category: "Personal Everyday Pocket Items", words: ["Wallet", "Keys", "Coin Purse", "Comb", "Pocket Mirror", "Hand Sanitizer"] },
+      { category: "Modern Personal Gadgets", words: ["Smartphone", "Tablet", "Smartwatch", "E-Reader", "Power Bank", "Laptop"] },
+      { category: "Audio Accessories", words: ["Earphones", "Headphones", "Earbuds", "Microphone", "Bluetooth Speaker"] },
+      { category: "Popular Fast Food", words: ["Pizza", "Burger", "Hotdog", "French Fries", "Tacos", "Fried Chicken", "Sandwich", "Nachos"] },
+      { category: "Beverages", words: ["Coffee", "Tea", "Lemonade", "Fruit Juice", "Soda", "Smoothie", "Iced Tea", "Bottled Water"] },
+      { category: "Fresh Fruit", words: ["Banana", "Apple", "Orange", "Grape", "Mango", "Pineapple", "Strawberry", "Watermelon", "Peach"] },
+      { category: "Vegetables", words: ["Carrot", "Potato", "Tomato", "Onion", "Broccoli", "Cucumber", "Spinach", "Garlic", "Bell Pepper"] },
+      { category: "Household Pets", words: ["Cat", "Dog", "Goldfish", "Hamster", "Parrot", "Rabbit", "Turtle"] },
+      { category: "Everyday Professions", words: ["Doctor", "Teacher", "Chef", "Firefighter", "Police Officer", "Pilot", "Nurse", "Barber"] },
+      { category: "Ball Sports Equipment", words: ["Basketball", "Football", "Volleyball", "Tennis Ball", "Golf Ball", "Baseball"] },
+      { category: "Racket & Field Sports", words: ["Badminton Racket", "Tennis Racket", "Baseball Bat", "Golf Club", "Ping Pong Paddle"] },
+      { category: "Decor & Wall Items", words: ["Mirror", "Wall Clock", "Picture Frame", "Painting", "Vase", "Curtain", "Wall Tapestry"] },
+      { category: "Office & Wall Furniture", words: ["Calendar", "Notice Board", "Desk Lamp", "Office Chair", "Filing Cabinet"] },
+      { category: "Bakery & Bread Items", words: ["Croissant", "Baguette", "Bagel", "Toast", "Muffin", "Donut", "Pancake", "Waffle"] },
+      { category: "Desserts & Sweets", words: ["Ice Cream", "Chocolate", "Cupcake", "Apple Pie", "Brownie", "Cookie", "Pudding", "Candy"] },
+      { category: "Breakfast Foods", words: ["Omelette", "Cereal", "Oatmeal", "Bacon", "Sausage", "French Toast", "Yogurt"] },
+      { category: "Dairy Products", words: ["Butter", "Cheese", "Milk", "Cream Cheese", "Sour Cream", "Yogurt"] },
+      { category: "Spices & Condiments", words: ["Salt", "Black Pepper", "Ketchup", "Mustard", "Mayonnaise", "Soy Sauce", "Hot Sauce"] },
+      { category: "Snack Foods", words: ["Potato Chips", "Popcorn", "Pretzels", "Peanuts", "Crackers", "Granola Bar"] },
+      { category: "Cold Drinks", words: ["Iced Coffee", "Milkshake", "Iced Tea", "Soda", "Sparkling Water", "Energy Drink"] },
+      { category: "Hot Drinks", words: ["Espresso", "Hot Chocolate", "Green Tea", "Cappuccino", "Latte", "Herbal Tea"] },
+      { category: "Cleaners & Detergents", words: ["Dish Soap", "Laundry Detergent", "Bleach", "Window Cleaner", "Disinfectant Spray"] },
+      { category: "Cleaning Tools", words: ["Broom", "Mop", "Dustpan", "Sponge", "Bucket", "Scrubber", "Microfiber Cloth"] },
+      { category: "Yard & Garden Tools", words: ["Lawn Mower", "Rake", "Shovel", "Watering Can", "Garden Hose", "Pruning Shears"] },
+      { category: "Sewing & Tailoring", words: ["Needle", "Thread", "Measuring Tape", "Safety Pin", "Thimble", "Button", "Zipper"] },
+      { category: "Winter Clothing", words: ["Sweater", "Overcoat", "Beanie", "Scarf", "Mittens", "Thermal Top", "Down Jacket"] },
+      { category: "Summer Apparel", words: ["Shorts", "T-Shirt", "Tank Top", "Swimsuit", "Sun Hat", "Flip Flops"] },
+      { category: "Jewelry Items", words: ["Bracelet", "Necklace", "Earring", "Ring", "Anklet", "Brooch", "Pendant"] },
+      { category: "Headwear & Hats", words: ["Baseball Cap", "Fedora", "Beanie", "Sombrero", "Sun Hat", "Beret"] },
+      { category: "Types of Shoes", words: ["Running Shoes", "High Heels", "Loafers", "Boots", "Sandals", "Sneakers"] },
+      { category: "Hardware Fasteners", words: ["Nail", "Screw", "Bolt", "Nut", "Washer", "Wall Anchor"] },
+      { category: "Storage Containers", words: ["Tupperware", "Glass Jar", "Cardboard Box", "Storage Bin", "Plastic Basket"] },
+      { category: "Tableware & Dining", words: ["Plate", "Bowl", "Mug", "Glass", "Teacup", "Pitcher", "Saucer"] },
+      { category: "Camping & Outdoor", words: ["Tent", "Sleeping Bag", "Flashlight", "Camp Stove", "Compass", "Canteen", "Cooler"] },
+      { category: "Beach & Pool Gear", words: ["Beach Towel", "Sunscreen", "Beach Ball", "Snorkel", "Goggles", "Floatie"] },
+      { category: "Toys & Children Games", words: ["Teddy Bear", "Lego Bricks", "Doll", "Toy Car", "Puzzle", "Yo-Yo", "Kite"] },
+      { category: "Board Games & Tabletop", words: ["Chess", "Checkers", "Monopoly", "Dominoes", "Playing Cards", "Dice"] },
+      { category: "Exercise & Gym Equipment", words: ["Dumbbell", "Treadmill", "Jump Rope", "Yoga Mat", "Kettlebell", "Resistance Band"] },
+      { category: "Medical Essentials", words: ["Band-Aid", "Thermometer", "Syringe", "Bandage", "First Aid Kit", "Ice Pack"] },
+      { category: "Baby Care Items", words: ["Diaper", "Baby Bottle", "Pacifier", "Stroller", "Crib", "Rattle", "Baby Wipes"] },
+      { category: "Pet Supplies", words: ["Leash", "Pet Collar", "Dog Bowl", "Cat Litter Box", "Pet Carrier", "Chew Toy"] },
+      { category: "Lighting & Lamps", words: ["Desk Lamp", "Floor Lamp", "Chandelier", "Lantern", "Flashlight", "Candle"] },
+      { category: "Window Treatments", words: ["Blinds", "Curtains", "Drapes", "Window Screen", "Shutters"] },
+      { category: "Seafood & Fish", words: ["Shrimp", "Salmon", "Tuna", "Crab", "Lobster", "Clams", "Squid"] },
+      { category: "Meat & Poultry", words: ["Chicken Breast", "Beef Steak", "Pork Chop", "Bacon", "Turkey", "Lamb Chop"] },
+      { category: "Herbs & Spices", words: ["Basil", "Oregano", "Cinnamon", "Rosemary", "Thyme", "Parsley", "Vanilla"] },
+      { category: "Nuts & Dried Fruits", words: ["Almond", "Walnut", "Cashew", "Raisin", "Pistachio", "Peanut"] },
+      { category: "Sauces & Dips", words: ["Guacamole", "Salsa", "Hummus", "BBQ Sauce", "Ranch Dressing", "Pesto"] },
+      { category: "Baking Ingredients", words: ["Flour", "Sugar", "Baking Powder", "Yeast", "Cocoa Powder", "Baking Soda"] },
+      { category: "Canned Foods", words: ["Canned Soup", "Tuna Can", "Baked Beans", "Canned Corn", "Tomato Paste"] },
+      { category: "Party Supplies", words: ["Balloon", "Confetti", "Party Hat", "Streamers", "Candles", "Paper Plate"] },
+      { category: "Personal Care Tools", words: ["Nail Clipper", "Hair Dryer", "Hair Straightener", "Tweezers", "Razor", "Nail File"] },
+      { category: "Cosmetics & Makeup", words: ["Lipstick", "Mascara", "Foundation", "Blush", "Eyeliner", "Nail Polish"] },
+      { category: "Air Travel", words: ["Boarding Pass", "Luggage Tag", "Airplane Seat", "Passport", "Tray Table"] },
+      { category: "Rail & Train Travel", words: ["Train Ticket", "Platform", "Locomotive", "Train Car", "Tracks"] },
+      { category: "Watercraft & Boats", words: ["Sailboat", "Yacht", "Canoe", "Kayak", "Speedboat", "Submarine"] },
+      { category: "City Infrastructure", words: ["Traffic Light", "Street Lamp", "Sidewalk", "Fire Hydrant", "Bus Stop", "Bench"] },
+      { category: "Buildings & Venues", words: ["Library", "Museum", "Cinema", "Hospital", "School", "Supermarket", "Bakery"] },
+      { category: "Rooms in a House", words: ["Kitchen", "Bedroom", "Bathroom", "Living Room", "Attic", "Basement", "Garage"] },
+      { category: "Farm Animals", words: ["Cow", "Horse", "Pig", "Sheep", "Goat", "Chicken", "Duck", "Rooster"] },
+      { category: "Wild Animals", words: ["Lion", "Elephant", "Tiger", "Giraffe", "Bear", "Zebra", "Monkey", "Kangaroo"] },
+      { category: "Birds", words: ["Eagle", "Owl", "Pigeon", "Penguin", "Flamingo", "Peacock", "Sparrow"] },
+      { category: "Sea Creatures", words: ["Dolphin", "Whale", "Shark", "Octopus", "Jellyfish", "Sea Turtle", "Starfish"] },
+      { category: "Insects & Bugs", words: ["Butterfly", "Honeybee", "Ant", "Ladybug", "Dragonfly", "Grasshopper"] },
+      { category: "Trees & Plants", words: ["Oak Tree", "Pine Tree", "Palm Tree", "Cactus", "Bamboo", "Fern", "Bonsai"] },
+      { category: "Flowers", words: ["Rose", "Tulip", "Sunflower", "Orchid", "Daisy", "Lily", "Lavender"] },
+      { category: "Weather Elements", words: ["Rain", "Snow", "Rainbow", "Lightning", "Thunder", "Tornado", "Fog"] },
+      { category: "Geographical Features", words: ["Mountain", "Volcano", "River", "Waterfall", "Island", "Desert", "Cave"] },
+      { category: "Space & Universe", words: ["Moon", "Sun", "Planet", "Star", "Comet", "Asteroid", "Galaxy"] },
+      { category: "Measurement Instruments", words: ["Thermometer", "Scale", "Stopwatch", "Barometer", "Compass"] },
+      { category: "Office Furniture", words: ["Executive Desk", "Ergonomic Chair", "Conference Table", "Whiteboard"] },
+      { category: "School Classrooms", words: ["Blackboard", "Chalkboard", "Student Desk", "Globe", "Microscope"] },
+      { category: "Asian Dishes", words: ["Sushi", "Ramen", "Pad Thai", "Dim Sum", "Fried Rice", "Spring Roll"] },
+      { category: "Italian Dishes", words: ["Spaghetti", "Lasagna", "Ravioli", "Risotto", "Gelato", "Gnocchi"] },
+      { category: "Mexican Dishes", words: ["Burrito", "Quesadilla", "Enchilada", "Tacos", "Tamales", "Chips & Salsa"] },
+      { category: "Breakfast Cereals", words: ["Corn Flakes", "Oatmeal", "Muesli", "Fruit Loops", "Rice Krispies"] },
+      { category: "Home Laundry", words: ["Ironing Board", "Clothes Hanger", "Laundry Basket", "Clothesline", "Washing Machine"] }
+    ];
+
+    // App State
+    let players = [];
+    let secretData = { word: "", category: "" };
+    let impostorIndices = [];
+    let currentPassIndex = 0;
+    let currentTurnIndex = 0;
+    let turnOrder = [];
+    let clueRound = 1;
+
+    // Timer State
+    const TIMER_DURATION = 60;
+    let timerSeconds = TIMER_DURATION;
+    let timerInterval = null;
+
+    // DOM Elements
+    const screenRegister = document.getElementById('screen-register');
+    const screenPass = document.getElementById('screen-pass');
+    const screenGameplay = document.getElementById('screen-gameplay');
+    const screenReveal = document.getElementById('screen-reveal');
+
+    const addPlayerForm = document.getElementById('add-player-form');
+    const playerNameInput = document.getElementById('player-name-input');
+    const playerListContainer = document.getElementById('player-list');
+    const emptyState = document.getElementById('empty-state');
+    const playerCountSpan = document.getElementById('player-count');
+    const btnNoMore = document.getElementById('btn-no-more');
+
+    const passStep = document.getElementById('pass-step');
+    const passTotal = document.getElementById('pass-total');
+    const currentPassPlayer = document.getElementById('current-pass-player');
+    const cardSecret = document.getElementById('card-secret');
+    const secretWordDisplay = document.getElementById('secret-word-display');
+    const secretPlaceholder = document.getElementById('secret-placeholder');
+    const roleTag = document.getElementById('role-tag');
+    const secretWordText = document.getElementById('secret-word-text');
+    const secretClueText = document.getElementById('secret-clue-text');
+    const btnHoldWord = document.getElementById('btn-hold-word');
+    const btnNextPass = document.getElementById('btn-next-pass');
+
+    const turnPlayerName = document.getElementById('turn-player-name');
+    const clueRoundBadge = document.getElementById('clue-round-badge');
+    const timerSecondsDisplay = document.getElementById('timer-seconds');
+    const timerProgress = document.getElementById('timer-progress');
+    const btnSkipTimer = document.getElementById('btn-skip-timer');
+    const btnReveal = document.getElementById('btn-reveal');
+
+    const finalSecretWord = document.getElementById('final-secret-word');
+    const finalCategory = document.getElementById('final-category');
+    const finalImpostorsList = document.getElementById('final-impostors-list');
+    const btnPlayAgain = document.getElementById('btn-play-again');
+    const btnEndGame = document.getElementById('btn-end-game');
+
+    function showScreen(screen) {
+      [screenRegister, screenPass, screenGameplay, screenReveal].forEach(s => s.classList.add('hidden'));
+      screen.classList.remove('hidden');
+    }
+
+    addPlayerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = playerNameInput.value.trim();
+      if (!name) return;
+
+      players.push(name);
+      playerNameInput.value = '';
+      renderPlayerList();
+      playerNameInput.focus();
+    });
+
+    function removePlayer(index) {
+      players.splice(index, 1);
+      renderPlayerList();
+    }
+
+    function renderPlayerList() {
+      playerCountSpan.textContent = players.length;
+
+      if (players.length === 0) {
+        emptyState.classList.remove('hidden');
+        playerListContainer.innerHTML = '';
+        playerListContainer.appendChild(emptyState);
+      } else {
+        emptyState.classList.add('hidden');
+        playerListContainer.innerHTML = '';
+        
+        players.forEach((p, idx) => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm';
+          item.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-purple-900/60 text-purple-300 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
+              <span class="font-medium text-slate-200">${escapeHtml(p)}</span>
+            </div>
+            <button onclick="removePlayer(${idx})" class="text-rose-400 hover:text-rose-300 p-1 font-bold text-xs">
+              ✕
+            </button>
+          `;
+          playerListContainer.appendChild(item);
+        });
+      }
+
+      if (players.length >= 4) {
+        btnNoMore.classList.remove('hidden');
+      } else {
+        btnNoMore.classList.add('hidden');
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
+    btnNoMore.addEventListener('click', () => {
+      if (players.length < 4) return;
+      startNewRound();
+    });
+
+    function startNewRound() {
+      // 1. Pick a random category out of the 100 Categories
+      const randCatIdx = Math.floor(Math.random() * WORD_BANK_100.length);
+      const selectedCategoryGroup = WORD_BANK_100[randCatIdx];
+      
+      // 2. Pick a random word inside that category
+      const randWordIdx = Math.floor(Math.random() * selectedCategoryGroup.words.length);
+      secretData = {
+        word: selectedCategoryGroup.words[randWordIdx],
+        category: selectedCategoryGroup.category
+      };
+
+      // 3. Determine number of impostors (1 for every 4 players)
+      const numImpostors = Math.max(1, Math.floor(players.length / 4));
+
+      // 4. Randomly select impostor indices
+      impostorIndices = [];
+      while (impostorIndices.length < numImpostors) {
+        const candidate = Math.floor(Math.random() * players.length);
+        if (!impostorIndices.includes(candidate)) {
+          impostorIndices.push(candidate);
+        }
+      }
+
+      // 5. Reset Pass Phone state
+      currentPassIndex = 0;
+      updatePassPhoneScreen();
+      showScreen(screenPass);
+    }
+
+    function updatePassPhoneScreen() {
+      passStep.textContent = currentPassIndex + 1;
+      passTotal.textContent = players.length;
+      currentPassPlayer.textContent = players[currentPassIndex];
+      btnHoldWord.textContent = `${players[currentPassIndex]}, Hold Tight — Secret Word!`;
+
+      hideSecretWord();
+    }
+
+    function revealSecretWord() {
+      const isImpostor = impostorIndices.includes(currentPassIndex);
+
+      if (isImpostor) {
+        roleTag.textContent = "You are the IMPOSTOR!";
+        roleTag.className = "inline-block text-xs font-extrabold px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 uppercase tracking-wider";
+        secretWordText.textContent = "IMPOSTOR";
+        secretWordText.className = "text-3xl font-black text-rose-400 tracking-wide";
+        secretClueText.textContent = `Clue Category: ${secretData.category}`;
+        cardSecret.className = "my-4 p-6 rounded-2xl bg-rose-950/40 border-2 border-rose-500 min-h-[160px] flex flex-col items-center justify-center transition-all duration-200 pulse-glow";
+      } else {
+        roleTag.textContent = "Secret Word";
+        roleTag.className = "inline-block text-xs font-extrabold px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider";
+        secretWordText.textContent = secretData.word;
+        secretWordText.className = "text-3xl font-black text-purple-200 tracking-wide";
+        secretClueText.textContent = `Category: ${secretData.category}`;
+        cardSecret.className = "my-4 p-6 rounded-2xl bg-purple-950/40 border-2 border-purple-500 min-h-[160px] flex flex-col items-center justify-center transition-all duration-200 glow-purple";
+      }
+
+      secretPlaceholder.classList.add('hidden');
+      secretWordDisplay.classList.remove('hidden');
+      btnHoldWord.classList.add('hold-btn-active');
+    }
+
+    function hideSecretWord() {
+      secretPlaceholder.classList.remove('hidden');
+      secretWordDisplay.classList.add('hidden');
+      cardSecret.className = "my-4 p-6 rounded-2xl bg-slate-900/90 border-2 border-dashed border-slate-700 min-h-[160px] flex flex-col items-center justify-center transition-all duration-200";
+      btnHoldWord.classList.remove('hold-btn-active');
+    }
+
+    const startEvents = ['mousedown', 'touchstart'];
+    const endEvents = ['mouseup', 'mouseleave', 'touchend', 'touchcancel'];
+
+    startEvents.forEach(evt => {
+      btnHoldWord.addEventListener(evt, (e) => {
+        e.preventDefault();
+        revealSecretWord();
+      });
+    });
+
+    endEvents.forEach(evt => {
+      btnHoldWord.addEventListener(evt, (e) => {
+        e.preventDefault();
+        hideSecretWord();
+      });
+    });
+
+    btnNextPass.addEventListener('click', () => {
+      hideSecretWord();
+      currentPassIndex++;
+
+      if (currentPassIndex < players.length) {
+        updatePassPhoneScreen();
+      } else {
+        startGameplayPhase();
+      }
+    });
+
+    function shuffleTurnOrder() {
+      const lastPlayer = turnOrder.length ? turnOrder[turnOrder.length - 1] : null;
+      
+      for (let i = turnOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [turnOrder[i], turnOrder[j]] = [turnOrder[j], turnOrder[i]];
+      }
+
+      if (turnOrder.length > 1 && lastPlayer !== null && turnOrder[0] === lastPlayer) {
+        const swapIdx = 1 + Math.floor(Math.random() * (turnOrder.length - 1));
+        [turnOrder[0], turnOrder[swapIdx]] = [turnOrder[swapIdx], turnOrder[0]];
+      }
+    }
+
+    function startGameplayPhase() {
+      clueRound = 1;
+      clueRoundBadge.textContent = `(Round ${clueRound})`;
+
+      turnOrder = Array.from({ length: players.length }, (_, i) => i);
+      shuffleTurnOrder();
+
+      currentTurnIndex = 0;
+      showScreen(screenGameplay);
+      startTurn();
+    }
+
+    function startTurn() {
+      const activePlayerIndex = turnOrder[currentTurnIndex];
+      turnPlayerName.textContent = players[activePlayerIndex];
+      resetTimer();
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerSeconds = TIMER_DURATION;
+      updateTimerUI();
+
+      timerInterval = setInterval(() => {
+        timerSeconds--;
+        updateTimerUI();
+
+        if (timerSeconds <= 0) {
+          clearInterval(timerInterval);
+          advanceTurn();
+        }
+      }, 1000);
+    }
+
+    function updateTimerUI() {
+      timerSecondsDisplay.textContent = timerSeconds;
+      
+      const maxOffset = 263.89;
+      const progressOffset = maxOffset - (timerSeconds / TIMER_DURATION) * maxOffset;
+      timerProgress.style.strokeDashoffset = progressOffset;
+
+      if (timerSeconds <= 10) {
+        timerProgress.setAttribute('class', 'text-rose-500 transition-all duration-1000 ease-linear');
+      } else {
+        timerProgress.setAttribute('class', 'text-purple-500 transition-all duration-1000 ease-linear');
+      }
+    }
+
+    function advanceTurn() {
+      currentTurnIndex++;
+
+      if (currentTurnIndex >= turnOrder.length) {
+        currentTurnIndex = 0;
+        clueRound++;
+        clueRoundBadge.textContent = `(Round ${clueRound})`;
+        shuffleTurnOrder();
+      }
+
+      startTurn();
+    }
+
+    btnSkipTimer.addEventListener('click', () => {
+      advanceTurn();
+    });
+
+    btnReveal.addEventListener('click', () => {
+      clearInterval(timerInterval);
+      showScreen(screenReveal);
+
+      finalSecretWord.textContent = secretData.word;
+      finalCategory.textContent = `Category: ${secretData.category}`;
+
+      finalImpostorsList.innerHTML = '';
+      impostorIndices.forEach(idx => {
+        const badge = document.createElement('span');
+        badge.className = 'px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-sm';
+        badge.textContent = players[idx];
+        finalImpostorsList.appendChild(badge);
+      });
+    });
+
+    btnPlayAgain.addEventListener('click', () => {
+      startNewRound();
+    });
+
+    btnEndGame.addEventListener('click', () => {
+      players = [];
+      renderPlayerList();
+      showScreen(screenRegister);
+    });
+  </script>
+</body>
+</html>
