@@ -47,7 +47,7 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-3 sm:p-6 bg-slate-950 text-slate-100">
 
-  <!-- Main Mobile Container -->
+  <!-- Main Mobile Container (720x1560 design target) -->
   <div class="w-full max-w-[430px] h-[100dvh] max-h-[920px] flex flex-col justify-between glass-card rounded-3xl p-5 shadow-2xl relative overflow-hidden border border-slate-800">
 
     <!-- App Header -->
@@ -270,7 +270,7 @@
   </div>
 
   <script>
-    // 100 Everyday Categories with Everyday Nouns
+    // 100 everyday categories with everyday words common in the Philippines.
     const WORD_BANK_100 = [
       { category: "Nature & Environment", words: [ "tree", "coconut", "banana", "mango", "bamboo", "palm", "rice", "grass", "flower", "leaf", "root", "vine", "fern", "orchid", "gumamela", "sampaguita", "ilang-ilang", "bougainvillea", "papaya", "pineapple", "jackfruit", "guava", "calamansi", "avocado", "durian", "rambutan", "mangosteen", "watermelon", "corn", "sugarcane", "taro", "cassava", "sweet potato", "rice field", "forest", "rainforest", "jungle", "mountain", "hill", "volcano", "river", "stream", "waterfall", "lake", "pond", "spring", "sea", "ocean", "beach", "island", "coast", "shore", "reef", "coral", "mangrove", "wetland", "swamp", "cave", "cliff", "valley", "plain", "soil", "sand", "rock", "stone", "mud", "rain", "rainbow", "cloud", "wind", "storm", "typhoon", "thunder", "lightning", "sun", "sunlight", "moon", "star", "sky", "sunset", "sunrise", "flood", "drought", "earthquake", "landslide", "fire", "smoke", "air", "water", "wildlife", "bird", "fish", "butterfly", "bee", "dragonfly", "frog", "lizard", "snake", "turtle", "environment" ] },
       { category: "People & Society", words: [ "family", "parent", "mother", "father", "child", "son", "daughter", "brother", "sister", "grandparent", "grandmother", "grandfather", "grandchild", "husband", "wife", "couple", "baby", "student", "teacher", "neighbor", "friend", "classmate", "roommate", "relative", "community", "barangay", "village", "neighborhood", "resident", "citizen", "leader", "volunteer", "worker", "farmer", "fisherman", "vendor", "driver", "nurse", "doctor", "engineer", "teacher", "shopkeeper", "vendor", "customer", "passenger", "pedestrian", "commuter", "tourist", "visitor", "foreigner", "Filipino", "Filipina", "teenager", "youth", "adult", "elder", "senior", "baby", "toddler", "person", "people", "crowd", "group", "team", "class", "household", "couple", "family", "friendship", "relationship", "respect", "hospitality", "kindness", "unity", "cooperation", "community", "neighborliness", "help", "support", "celebration", "gathering", "meeting", "conversation", "greeting", "handshake", "smile", "laughter", "love", "care", "trust", "pride", "hope", "fear", "happiness", "sadness", "anger", "shyness", "faith", "tradition", "daily life" ] },
@@ -291,6 +291,7 @@
 
     // App State
     let players = [];
+    let impostorCounts = {};
     let secretData = { word: "", category: "" };
     let impostorIndices = [];
     let currentPassIndex = 0;
@@ -346,6 +347,12 @@
       screen.classList.remove('hidden');
     }
 
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+      });
+    }
+
     addPlayerForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const name = playerNameInput.value.trim();
@@ -361,6 +368,9 @@
       players.splice(index, 1);
       renderPlayerList();
     }
+
+    // Expose removePlayer globally for any inline callbacks
+    window.removePlayer = removePlayer;
 
     function renderPlayerList() {
       playerCountSpan.textContent = players.length;
@@ -381,11 +391,19 @@
               <span class="w-5 h-5 rounded-full bg-purple-900/60 text-purple-300 text-xs font-bold flex items-center justify-center">${idx + 1}</span>
               <span class="font-medium text-slate-200">${escapeHtml(p)}</span>
             </div>
-            <button onclick="removePlayer(${idx})" class="text-rose-400 hover:text-rose-300 p-1 font-bold text-xs">
+            <button data-remove-idx="${idx}" class="btn-remove-player text-rose-400 hover:text-rose-300 p-1 font-bold text-xs">
               ✕
             </button>
           `;
           playerListContainer.appendChild(item);
+        });
+
+        // Add event listeners to remove buttons safely
+        playerListContainer.querySelectorAll('.btn-remove-player').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const idxToRemove = parseInt(e.currentTarget.getAttribute('data-remove-idx'), 10);
+            removePlayer(idxToRemove);
+          });
         });
       }
 
@@ -396,10 +414,49 @@
       }
     }
 
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, function(m) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+    function getCryptoRandom() {
+      if (window.crypto && window.crypto.getRandomValues) {
+        const arr = new Uint32Array(1);
+        window.crypto.getRandomValues(arr);
+        return arr[0] / (0xFFFFFFFF + 1);
+      }
+      return Math.random();
+    }
+
+    function getWeightedRandomPlayerIndex(excludeIndices = []) {
+      const eligible = [];
+      for (let i = 0; i < players.length; i++) {
+        if (!excludeIndices.includes(i)) {
+          eligible.push(i);
+        }
+      }
+      if (eligible.length === 0) return 0;
+
+      let minCount = Infinity;
+      eligible.forEach(idx => {
+        const name = players[idx];
+        const count = impostorCounts[name] || 0;
+        if (count < minCount) minCount = count;
       });
+
+      const weights = eligible.map(idx => {
+        const name = players[idx];
+        const count = impostorCounts[name] || 0;
+        const diff = count - minCount;
+        return Math.max(0.2, 1.0 - (diff * 0.4));
+      });
+
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      let randomVal = getCryptoRandom() * totalWeight;
+
+      for (let i = 0; i < eligible.length; i++) {
+        if (randomVal < weights[i]) {
+          return eligible[i];
+        }
+        randomVal -= weights[i];
+      }
+
+      return eligible[eligible.length - 1];
     }
 
     btnNoMore.addEventListener('click', () => {
@@ -408,30 +465,34 @@
     });
 
     function startNewRound() {
-      // 1. Pick a random category out of the 100 Categories
-      const randCatIdx = Math.floor(Math.random() * WORD_BANK_100.length);
-      const selectedCategoryGroup = WORD_BANK_100[randCatIdx];
-      
-      // 2. Pick a random word inside that category
-      const randWordIdx = Math.floor(Math.random() * selectedCategoryGroup.words.length);
+      // 1. Pick a random category & word
+      const catIndex = Math.floor(getCryptoRandom() * WORD_BANK_100.length);
+      const selectedCat = WORD_BANK_100[catIndex];
+      const wordIndex = Math.floor(getCryptoRandom() * selectedCat.words.length);
+      const selectedWord = selectedCat.words[wordIndex];
+
       secretData = {
-        word: selectedCategoryGroup.words[randWordIdx],
-        category: selectedCategoryGroup.category
+        word: selectedWord,
+        category: selectedCat.category
       };
 
-      // 3. Determine number of impostors (1 for every 4 players)
+      // 2. Determine number of impostors (1 for every 4 players)
       const numImpostors = Math.max(1, Math.floor(players.length / 4));
 
-      // 4. Randomly select impostor indices
+      // 3. Select impostor indices using Weighted Cryptographic Randomness
       impostorIndices = [];
       while (impostorIndices.length < numImpostors) {
-        const candidate = Math.floor(Math.random() * players.length);
-        if (!impostorIndices.includes(candidate)) {
-          impostorIndices.push(candidate);
-        }
+        const candidate = getWeightedRandomPlayerIndex(impostorIndices);
+        impostorIndices.push(candidate);
       }
 
-      // 5. Reset Pass Phone state
+      // Record history
+      impostorIndices.forEach(idx => {
+        const name = players[idx];
+        impostorCounts[name] = (impostorCounts[name] || 0) + 1;
+      });
+
+      // 4. Reset Pass Phone state
       currentPassIndex = 0;
       updatePassPhoneScreen();
       showScreen(screenPass);
@@ -441,7 +502,7 @@
       passStep.textContent = currentPassIndex + 1;
       passTotal.textContent = players.length;
       currentPassPlayer.textContent = players[currentPassIndex];
-      btnHoldWord.textContent = `${players[currentPassIndex]}, Hold Tight — Secret Word!`;
+      btnHoldWord.textContent = `${players[currentPassIndex]}, Hold to See Word`;
 
       hideSecretWord();
     }
@@ -477,21 +538,22 @@
       btnHoldWord.classList.remove('hold-btn-active');
     }
 
+    // Touch & Mouse Listeners for Hold Button
     const startEvents = ['mousedown', 'touchstart'];
     const endEvents = ['mouseup', 'mouseleave', 'touchend', 'touchcancel'];
 
     startEvents.forEach(evt => {
       btnHoldWord.addEventListener(evt, (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         revealSecretWord();
-      });
+      }, { passive: false });
     });
 
     endEvents.forEach(evt => {
       btnHoldWord.addEventListener(evt, (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         hideSecretWord();
-      });
+      }, { passive: false });
     });
 
     btnNextPass.addEventListener('click', () => {
@@ -509,12 +571,12 @@
       const lastPlayer = turnOrder.length ? turnOrder[turnOrder.length - 1] : null;
       
       for (let i = turnOrder.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(getCryptoRandom() * (i + 1));
         [turnOrder[i], turnOrder[j]] = [turnOrder[j], turnOrder[i]];
       }
 
       if (turnOrder.length > 1 && lastPlayer !== null && turnOrder[0] === lastPlayer) {
-        const swapIdx = 1 + Math.floor(Math.random() * (turnOrder.length - 1));
+        const swapIdx = 1 + Math.floor(getCryptoRandom() * (turnOrder.length - 1));
         [turnOrder[0], turnOrder[swapIdx]] = [turnOrder[swapIdx], turnOrder[0]];
       }
     }
@@ -555,7 +617,6 @@
 
     function updateTimerUI() {
       timerSecondsDisplay.textContent = timerSeconds;
-      
       const maxOffset = 263.89;
       const progressOffset = maxOffset - (timerSeconds / TIMER_DURATION) * maxOffset;
       timerProgress.style.strokeDashoffset = progressOffset;
@@ -606,6 +667,7 @@
 
     btnEndGame.addEventListener('click', () => {
       players = [];
+      impostorCounts = {};
       renderPlayerList();
       showScreen(screenRegister);
     });
