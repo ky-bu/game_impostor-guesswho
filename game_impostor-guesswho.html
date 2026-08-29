@@ -173,6 +173,33 @@
       </div>
     </div>
 
+    <!-- NOTIFIER / GET READY MODAL -->
+    <div id="ready-modal" class="hidden absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col justify-between p-6 text-center animate-fade-in">
+      <div class="my-auto space-y-4">
+        <div class="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        
+        <h2 class="text-2xl font-black text-white">All Roles Assigned!</h2>
+        
+        <p class="text-sm text-slate-300 leading-relaxed max-w-xs mx-auto">
+          Everyone has seen their word. Put the phone in the middle and get ready for the description round!
+        </p>
+
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 text-xs">
+          <span class="text-slate-400 uppercase tracking-wider font-semibold">First to speak:</span>
+          <div id="ready-first-player" class="text-xl font-extrabold text-purple-400">Player</div>
+        </div>
+      </div>
+
+      <button 
+        id="btn-start-gameplay"
+        class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-extrabold py-4 rounded-2xl shadow-lg shadow-emerald-950/50 text-base tracking-wide transition uppercase"
+      >
+        Start Gameplay & Timer
+      </button>
+    </div>
+
     <!-- SCREEN 3: GAMEPLAY / TIMER ROUND -->
     <div id="screen-gameplay" class="hidden flex-1 flex flex-col justify-between py-3 text-center">
       <!-- Centered 2-Line Header -->
@@ -307,6 +334,7 @@
     // DOM Elements
     const screenRegister = document.getElementById('screen-register');
     const screenPass = document.getElementById('screen-pass');
+    const readyModal = document.getElementById('ready-modal');
     const screenGameplay = document.getElementById('screen-gameplay');
     const screenReveal = document.getElementById('screen-reveal');
 
@@ -329,6 +357,9 @@
     const btnHoldWord = document.getElementById('btn-hold-word');
     const btnNextPass = document.getElementById('btn-next-pass');
 
+    const readyFirstPlayer = document.getElementById('ready-first-player');
+    const btnStartGameplay = document.getElementById('btn-start-gameplay');
+
     const turnPlayerName = document.getElementById('turn-player-name');
     const clueRoundBadge = document.getElementById('clue-round-badge');
     const timerSecondsDisplay = document.getElementById('timer-seconds');
@@ -343,7 +374,7 @@
     const btnEndGame = document.getElementById('btn-end-game');
 
     function showScreen(screen) {
-      [screenRegister, screenPass, screenGameplay, screenReveal].forEach(s => s.classList.add('hidden'));
+      [screenRegister, screenPass, readyModal, screenGameplay, screenReveal].forEach(s => s.classList.add('hidden'));
       screen.classList.remove('hidden');
     }
 
@@ -368,7 +399,7 @@
       players.splice(index, 1);
       renderPlayerList();
     }
-
+    
     // Expose removePlayer globally for any inline callbacks
     window.removePlayer = removePlayer;
 
@@ -563,7 +594,8 @@
       if (currentPassIndex < players.length) {
         updatePassPhoneScreen();
       } else {
-        startGameplayPhase();
+        // All players have seen their word -> Show Ready Notifier Modal
+        prepareGameplayPhase();
       }
     });
 
@@ -581,7 +613,7 @@
       }
     }
 
-    function startGameplayPhase() {
+    function prepareGameplayPhase() {
       clueRound = 1;
       clueRoundBadge.textContent = `(Round ${clueRound})`;
 
@@ -589,9 +621,18 @@
       shuffleTurnOrder();
 
       currentTurnIndex = 0;
+      
+      // Update Notifier with first speaker's name
+      readyFirstPlayer.textContent = players[turnOrder[0]];
+
+      // Show the Ready / Confirmation Notifier Modal
+      showScreen(readyModal);
+    }
+
+    btnStartGameplay.addEventListener('click', () => {
       showScreen(screenGameplay);
       startTurn();
-    }
+    });
 
     function startTurn() {
       const activePlayerIndex = turnOrder[currentTurnIndex];
